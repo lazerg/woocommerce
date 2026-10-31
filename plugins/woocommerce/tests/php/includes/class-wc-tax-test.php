@@ -401,6 +401,59 @@ class WC_Tax_Test extends WC_Unit_Test_Case {
 	}
 
 	/**
+	 * Test get_shipping_tax_rates treats a missing cart like an empty cart.
+	 */
+	public function test_get_shipping_tax_rates_without_cart() {
+		$tax_rate_id = $this->create_tax_rate_for_class( '', 10.0 );
+		update_option( 'woocommerce_shipping_tax_class', 'inherit' );
+
+		$cart      = WC()->cart;
+		WC()->cart = null;
+		try {
+			$shipping_rates = WC_Tax::get_shipping_tax_rates();
+		} finally {
+			WC()->cart = $cart;
+		}
+
+		$this->assertArrayHasKey( $tax_rate_id, $shipping_rates );
+	}
+
+	/**
+	 * Test per-item shipping taxes are calculated without a cart.
+	 */
+	public function test_add_rate_with_per_item_tax_without_cart() {
+		$tax_rate_id = $this->create_tax_rate_for_class( '', 10.0 );
+		update_option( 'woocommerce_shipping_tax_class', 'inherit' );
+
+		$shipping_method = new class() extends WC_Shipping_Method {
+			/**
+			 * Shipping method ID.
+			 * @var string
+			 */
+			public $id = 'test_method';
+		};
+		$cart            = WC()->cart;
+		WC()->cart       = null;
+		try {
+			$shipping_method->add_rate(
+				array(
+					'id'       => 'test_rate',
+					'label'    => 'Test rate',
+					'cost'     => array(
+						'missing_item' => 5,
+						'order'        => 10,
+					),
+					'calc_tax' => 'per_item',
+				)
+			);
+		} finally {
+			WC()->cart = $cart;
+		}
+
+		$this->assertEquals( array( $tax_rate_id => 1.0 ), $shipping_method->rates['test_rate']->get_taxes() );
+	}
+
+	/**
 	 * Test get_shipping_tax_class_from_cart_items returns standard for empty cart.
 	 */
 	public function test_get_shipping_tax_class_from_cart_items_empty_cart() {

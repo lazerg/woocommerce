@@ -389,7 +389,7 @@ abstract class WC_Shipping_Method extends WC_Settings_API {
 		// If we have an array of costs we can look up each items tax class and add tax accordingly.
 		if ( is_array( $costs ) ) {
 
-			$cart = WC()->cart->get_cart();
+			$cart = WC()->cart ? WC()->cart->get_cart() : array();
 
 			foreach ( $costs as $cost_key => $amount ) {
 				if ( ! isset( $cart[ $cost_key ] ) ) {
